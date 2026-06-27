@@ -1,0 +1,35 @@
+# Environment
+.env
+*.env
+.env.*
+!.env.example
+
+# Claude
+CLAUDE.md
+.claude/
+claude_context/
+# Maven build output
+target/
+
+# Maven wrapper: keep scripts + properties, ignore the downloaded distribution cache
+.mvn/wrapper/maven-wrapper.jar
+
+# Node / frontend
+node_modules/
+dashboard/dist/
+dashboard/node_modules/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.settings/
+.classpath
+.project
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

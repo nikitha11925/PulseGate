@@ -1,0 +1,37 @@
+replicaCount: 2
+
+image:
+  repository: your-dockerhub-username/pulsegate
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8080
+
+autoscaling:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 5
+  targetQueueDepth: 50  # scale up when queue depth (avg per pod) exceeds this
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    cpu: 500m
+    memory: 1Gi
+
+# Injected as environment variables. Point these at your in-cluster Postgres/Redis.
+# (For real secrets, prefer a Secret + envFrom over plain values.)
+env:
+  DB_URL: r2dbc:postgresql://postgres:5432/pulsegate
+  DB_USERNAME: pulsegate_user
+  DB_PASSWORD: pulsegate_pass
+  REDIS_URL: redis://redis:6379
+  WORKER_CONCURRENCY: "10"
+  POLL_INTERVAL_MS: "500"
+  MAX_RETRY_ATTEMPTS: "3"
+
+nameOverride: ""

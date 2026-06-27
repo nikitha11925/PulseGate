@@ -1,0 +1,25 @@
+{{- if .Values.autoscaling.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "pulsegate.fullname" . }}
+  labels:
+    {{- include "pulsegate.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "pulsegate.fullname" . }}
+  minReplicas: {{ .Values.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.autoscaling.maxReplicas }}
+  metrics:
+    # Custom application metric (pulsegate_queue_depth) surfaced to the HPA by prometheus-adapter.
+    # When the average queue depth across pods exceeds targetQueueDepth, the HPA scales out.
+    - type: Pods
+      pods:
+        metric:
+          name: pulsegate_queue_depth
+        target:
+          type: AverageValue
+          averageValue: "{{ .Values.autoscaling.targetQueueDepth }}"
+{{- end }}

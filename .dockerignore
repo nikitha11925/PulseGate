@@ -1,0 +1,10 @@
+target/
+.git/
+.gitignore
+.idea/
+*.iml
+.env
+dashboard/node_modules/
+dashboard/dist/
+**/*.log
+.mvn/wrapper/maven-wrapper.jar

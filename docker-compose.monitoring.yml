@@ -1,0 +1,22 @@
+# Prometheus + Grafana overlay. Combine with the main compose file so they share one network:
+#   docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up --build
+#
+# Grafana:    http://localhost:3000  (admin / admin)
+# Prometheus: http://localhost:9090
+
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    ports: ["9090:9090"]
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+
+  grafana:
+    image: grafana/grafana:latest
+    ports: ["3000:3000"]
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      # Auto-wire the Prometheus datasource so the dashboard works out of the box.
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    depends_on: [prometheus]

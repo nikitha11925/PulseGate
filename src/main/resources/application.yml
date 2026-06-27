@@ -1,0 +1,36 @@
+spring:
+  application:
+    name: pulsegate
+  data:
+    redis:
+      # Spring Boot 3 keeps Redis connection settings under spring.data.redis.
+      url: ${REDIS_URL:redis://localhost:6379}
+  # NOTE: R2DBC connection settings live at spring.r2dbc (NOT spring.data.r2dbc).
+  # spring.data.r2dbc only carries repository tuning, so the driver config must sit here.
+  r2dbc:
+    url: ${DB_URL:r2dbc:postgresql://localhost:5432/pulsegate}
+    username: ${DB_USERNAME:pulsegate_user}
+    password: ${DB_PASSWORD:pulsegate_pass}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        # Expose health + Prometheus scrape endpoint (/actuator/prometheus) + info.
+        include: health,prometheus,info
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+pulsegate:
+  worker:
+    # Max concurrent in-flight jobs per instance — this is the WebFlux backpressure knob.
+    concurrency: ${WORKER_CONCURRENCY:10}
+    poll-interval-ms: ${POLL_INTERVAL_MS:500}
+  retry:
+    max-attempts: ${MAX_RETRY_ATTEMPTS:3}
+  reclaimer:
+    # A PROCESSING job whose Redis message has been pending longer than this is
+    # treated as a crashed worker and reclaimed.
+    stuck-threshold-minutes: ${STUCK_THRESHOLD_MINUTES:5}

@@ -1,0 +1,15 @@
+PulseGate has been deployed.
+
+Service: {{ include "pulsegate.fullname" . }} ({{ .Values.service.type }}) on port {{ .Values.service.port }}
+
+Port-forward to reach it locally:
+  kubectl port-forward svc/{{ include "pulsegate.fullname" . }} 8080:{{ .Values.service.port }}
+  curl http://localhost:8080/actuator/health
+
+{{- if .Values.autoscaling.enabled }}
+
+Autoscaling is ENABLED ({{ .Values.autoscaling.minReplicas }}..{{ .Values.autoscaling.maxReplicas }} replicas),
+scaling on the custom metric `pulsegate_queue_depth` (target avg {{ .Values.autoscaling.targetQueueDepth }}).
+This requires prometheus-adapter to expose that metric to the Kubernetes custom metrics API:
+  kubectl get hpa {{ include "pulsegate.fullname" . }}
+{{- end }}

@@ -1,0 +1,35 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Build with Maven
+        run: mvn -B -ntp clean package -DskipTests
+
+      # Image build/push only on pushes to main (not PRs), and only if Docker Hub creds exist.
+      - name: Build Docker image
+        if: github.event_name == 'push'
+        run: docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/pulsegate:${{ github.sha }} .
+
+      - name: Push to Docker Hub
+        if: github.event_name == 'push'
+        run: |
+          echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/pulsegate:${{ github.sha }}
+          docker tag ${{ secrets.DOCKERHUB_USERNAME }}/pulsegate:${{ github.sha }} ${{ secrets.DOCKERHUB_USERNAME }}/pulsegate:latest
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/pulsegate:latest

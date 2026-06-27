@@ -1,0 +1,8 @@
+# Local development profile: chattier logging so the job lifecycle is visible in the console.
+# Activate with SPRING_PROFILES_ACTIVE=dev (docker-compose / .env sets this for local runs).
+logging:
+  level:
+    com.pulsegate: DEBUG
+    org.springframework.data.r2dbc: DEBUG
+    org.springframework.r2dbc.core: DEBUG
+    io.lettuce.core: INFO

@@ -1,0 +1,72 @@
+# Local dev stack. Copy .env.example to .env first:  cp .env.example .env
+#
+# Run app + infra:        docker compose up --build
+# Run app + monitoring:   docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up --build
+#   (the single combined project lets Prometheus reach the pulsegate service by name)
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: pulsegate
+      POSTGRES_USER: pulsegate_user
+      POSTGRES_PASSWORD: pulsegate_pass
+      # Run the DB in your local timezone (default IST) so raw timestamps match wall-clock time.
+      TZ: ${TZ:-Asia/Kolkata}
+      PGTZ: ${TZ:-Asia/Kolkata}
+    # Host port 5433 -> container 5432, to avoid clashing with a local Postgres on 5432.
+    # (The app connects over the internal network as postgres:5432, so this is external-only.)
+    ports: ["5433:5432"]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pulsegate_user -d pulsegate"]
+      interval: 10s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    # Host port 6380 -> container 6379, to avoid clashing with a local Redis on 6379.
+    ports: ["6380:6379"]
+    command: redis-server --appendonly yes
+    volumes:
+      - redisdata:/data
+
+  pulsegate:
+    build: .
+    # Host port 8081 -> container 8080, to avoid clashing with another local
+    # service on 8080. Internal networking (dashboard, Prometheus) still uses
+    # pulsegate:8080, so only the host-facing port changes.
+    ports: ["8081:8080"]
+    env_file: .env
+    environment:
+      # Override the localhost defaults from .env so the container reaches the compose services.
+      DB_URL: r2dbc:postgresql://postgres:5432/pulsegate
+      DB_USERNAME: pulsegate_user
+      DB_PASSWORD: pulsegate_pass
+      REDIS_URL: redis://redis:6379
+      # Stamp job timestamps (created_at/updated_at/completed_at) in your local timezone instead of
+      # UTC, so what the DB stores matches your wall clock. TZ sets the OS/logback clock; the JVM
+      # reads it too, and JAVA_TOOL_OPTIONS pins the JVM zone even if the base image lacks OS tzdata
+      # (the JVM bundles its own). Change TZ in .env (or remove it to fall back to UTC).
+      TZ: ${TZ:-Asia/Kolkata}
+      JAVA_TOOL_OPTIONS: -Duser.timezone=${TZ:-Asia/Kolkata}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  dashboard:
+    build: ./dashboard
+    # Host port 5175 -> container 5173, to avoid clashing with other local
+    # Vite dev servers on 5173/5174. Open the dashboard at http://localhost:5175.
+    ports: ["5175:5173"]
+    environment:
+      # The Vite dev/preview server proxies /api and /actuator to this target.
+      VITE_API_TARGET: http://pulsegate:8080
+    depends_on: [pulsegate]
+
+volumes:
+  pgdata:
+  redisdata:
