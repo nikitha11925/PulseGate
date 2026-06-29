@@ -4,10 +4,7 @@
 .env.*
 !.env.example
 
-# Claude
-CLAUDE.md
-.claude/
-claude_context/
+
 # Maven build output
 target/
 
